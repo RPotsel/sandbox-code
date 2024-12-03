@@ -1,0 +1,11 @@
+---
+# requires further development: config git, include runner
+- name: Install python-gitlab api
+  ansible.builtin.pip:
+    name: python-gitlab
+
+- include_tasks: create-group.yml
+  loop: "{{ gitlab_groups }}"
+  loop_control:
+    loop_var: group
+    label: "{{ group.name }}"

@@ -1,0 +1,16 @@
+---
+- name: Ensure HAProxy is install
+  ansible.builtin.package: name=haproxy state=present
+
+- name: Copy HAProxy configuration in place
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    mode: 0644
+    validate: haproxy -f %s -c -q
+
+- name: Restart HAProxy
+  ansible.builtin.service: name=haproxy state=restarted
+
+- name: Ensure HAProxy is started and enabled on boot
+  ansible.builtin.service: name=haproxy state=started enabled=yes

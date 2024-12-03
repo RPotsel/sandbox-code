@@ -1,0 +1,33 @@
+---
+- name: Ensure CNI directory
+  ansible.builtin.file:
+    path: "{{ cni_directory }}"
+    state: directory
+    mode: "0755"
+    owner: "{{ cni_owner | default('omit') }}"
+    group: "{{ cni_group | default('omit') }}"
+  loop:
+    - "{{ cni_bin_directory }}"
+    - "{{ cni_conf_directory }}"
+  loop_control:
+    loop_var: cni_directory
+
+- name: Downloading CNI archive
+  ansible.builtin.get_url:
+    url: "{{ cni_url }}"
+    dest: "{{ cni_tmp_directory }}/{{ cni_archive }}"
+    mode: "0640"
+    checksum: "sha256:{{ cni_url }}.sha256"
+  retries: 3
+  delay: 5
+
+- name: Unarchive CNI archive
+  ansible.builtin.unarchive:
+    src: "{{ cni_tmp_directory }}/{{ cni_archive }}"
+    dest: "{{ cni_bin_directory }}"
+    mode: "{{ cni_binary_mode }}"
+    owner: "{{ cni_owner | default(omit) }}"
+    group: "{{ cni_group | default(omit) }}"
+    remote_src: true
+  notify:
+    - Restart kubelet

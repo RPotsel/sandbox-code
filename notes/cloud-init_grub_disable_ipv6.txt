@@ -1,0 +1,24 @@
+/etc/default/grub.d/ipv6-disable.cfg
+GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} ipv6.disable=1"
+---
+#cloud-config
+autoinstall:
+  late-commands:
+    - |
+      cat <<'EOF' > /target/etc/default/grub.d/40my.cfg
+      GRUB_CMDLINE_LINUX_DEFAULT="${GRUB_CMDLINE_LINUX_DEFAULT} cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory systemd.unified_cgroup_hierarchy=0"
+      EOF
+      curtin in-target --target=/target -- update-grub
+---
+#cloud-config
+autoinstall:
+  debconf-selections: |
+    grub-pc grub2/linux_cmdline_default string cgroup_enable=cpuset cgroup_memory=1 cgroup_enable=memory systemd.unified_cgroup_hierarchy=0
+---
+write_files:
+  - path: /etc/sysctl.d/10-disable-ipv6.conf
+    permissions: 0644
+    owner: root
+    content: |
+      net.ipv6.conf.eth0.disable_ipv6 = 1
+

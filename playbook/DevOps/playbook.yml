@@ -1,0 +1,40 @@
+---
+- name: Deploy kubernetes
+  hosts: k8s_cluster
+  become: true
+
+  roles:
+  - role: kubernetes
+
+  post_tasks:
+  - name: Get the http nodePort from the ingress-nginx-controller
+    command: >
+      kubectl get service -n ingress-nginx ingress-nginx-controller
+      -o jsonpath='{.spec.ports[?(@.name=="http")].nodePort}'
+    changed_when: false
+    when: inventory_hostname == groups['k8s_control_plane'][0]
+    register: kubectl_get_http_nodePort_command_result
+
+  - name: Get the https nodePort from the ingress-nginx-controller
+    command: >
+      kubectl get service -n ingress-nginx ingress-nginx-controller
+      -o jsonpath='{.spec.ports[?(@.name=="https")].nodePort}'
+    changed_when: false
+    when: inventory_hostname == groups['k8s_control_plane'][0]
+    register: kubectl_get_https_nodePort_command_result
+
+- name: Deploy HAProxy
+  hosts: k8s_load_balancer
+  gather_facts: false
+  become: true
+
+  roles:
+  - role: haproxy
+    vars:
+      haproxy_backends:
+        http-backend:
+          port: "{{ hostvars[groups['k8s_control_plane'][0]]['kubectl_get_http_nodePort_command_result'].stdout }}"
+          servers: "{{ groups['k8s_worker'] | unique }}"
+        https-backend:
+          port: "{{ hostvars[groups['k8s_control_plane'][0]]['kubectl_get_https_nodePort_command_result'].stdout }}"
+          servers: "{{ groups['k8s_worker'] | unique }}"

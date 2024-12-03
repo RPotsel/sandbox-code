@@ -1,0 +1,13 @@
+plugin: libvirt_qemu
+strict: False
+uri: 'qemu:///system'
+
+groups:
+  k8s_control_plane: inventory_hostname.startswith('master')
+  k8s_worker: inventory_hostname.startswith('worker')
+  k8s_cluster:
+    children:
+      - k8s_control_plane
+      - k8s_worker
+  # the load balancer is located on the working node
+  k8s_load_balancer: inventory_hostname.startswith('worker02')

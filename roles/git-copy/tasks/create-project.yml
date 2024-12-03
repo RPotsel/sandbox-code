@@ -1,0 +1,33 @@
+---
+- name: Create GitLab Repository
+  community.general.gitlab_project:
+    api_url: "{{ gitlab_url }}"
+    api_username: "{{ gitlab_user }}"
+    api_password: "{{ gitlab_password }}"
+    name: "{{ project.name }}"
+    visibility: internal
+    group: "{{ gitlab_group.group.id }}"
+  register: gitlab_project
+
+- name: Pull Repository
+  ansible.builtin.git:
+    repo: "{{ project.path }}"
+    dest: "{{ tmp_repo_directory | default('~/git-copy-role') }}/{{ project.name }}"
+    clone: true
+    update: true
+  when: gitlab_project.changed
+
+- name: Push Content to local GitLab
+  ansible.builtin.shell: |
+    set -ex
+    repo={{ tmp_repo_directory | default('~/git-copy-role') }}/{{ project.name }}
+    if [ -d $repo/.git ]; then rm -rf $repo/.git; fi
+    cd $repo
+    git init
+    git add .
+    git commit -m "init commit"
+    git remote add gitlab-origin http://{{ gitlab_user }}:{{ gitlab_password }}@{{ gitlab_host }}:{{ gitlab_port }}/{{ gitlab_group.group.name }}/{{ project.name }}.git
+    git push -o ci.skip --all gitlab-origin
+    git push -o ci.skip --tags gitlab-origin
+    cd ~ && rm -rf $repo
+  when: gitlab_project.changed

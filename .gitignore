@@ -1,0 +1,28 @@
+# Python 
+# Byte-compiled / optimized / DLL files
+**/__pycache__/*
+*.py[cod]
+*$py.class
+
+# Go
+# Binaries for programs and plugins
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+# Output of the go coverage tool, specifically when used with LiteIDE
+*.out
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Ignore credentials
+**/auth/*
+*.cred
+.env
+.env.*
+!.env.example
+*.key
+*.crt

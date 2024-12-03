@@ -1,0 +1,30 @@
+---
+gitlab_edition: gitlab-ce
+gitlab_version: 16.5.2-ce.0
+gitlab_arch: amd64
+gitlab_packages_url: "https://packages.gitlab.com/gitlab/gitlab-ce/packages"
+
+# General config
+gitlab_domain: gitlab
+gitlab_external_url: "https://{{ gitlab_domain }}/"
+gitlab_git_data_dir: "/var/opt/gitlab/git-data"
+gitlab_backup_path: "/var/opt/gitlab/backups"
+gitlab_config_template: "gitlab.rb.j2"
+# gitlab_user: root
+gitlab_password: "P@$$w.rd!"
+
+# Optional config
+gitlab_time_zone: UTC
+gitlab_backup_keep_time: "604800"
+
+# Email configuration.
+gitlab_email_enabled: false
+
+# SSL Configuration
+gitlab_redirect_http_to_https: true
+gitlab_ssl_certificate: "/etc/gitlab/ssl/{{ gitlab_domain }}.crt"
+gitlab_ssl_certificate_key: "/etc/gitlab/ssl/{{ gitlab_domain }}.key"
+
+# SSL Self-signed Certificate Configuration
+gitlab_create_self_signed_cert: true
+gitlab_self_signed_cert_subj: "/C=RU/ST=Saint Petersburg/L=Saint Petersburg/O=IT/CN={{ gitlab_domain }}"

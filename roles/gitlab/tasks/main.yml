@@ -1,0 +1,63 @@
+---
+- name: Install dependencies
+  ansible.builtin.package:
+    name:
+      - openssh-server
+      # - postfix
+      - curl
+      - openssl
+      - tzdata
+      - git
+      - python3-pip
+    state: present
+
+- name: Manage entries in sysctl.conf
+  become: true
+  ansible.builtin.sysctl:
+    name:  "{{ item.key }}"
+    value: "{{ item.value }}"
+    sysctl_set: yes
+    state: present
+    reload: yes
+  with_items:
+    - { key: 'net.core.somaxconn', value: '512' }
+    - { key: 'vm.overcommit_memory', value: '1' }
+
+- name: Create GitLab folder
+  ansible.builtin.file:
+    path: /etc/gitlab
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Copy GitLab configuration file
+  ansible.builtin.template:
+    src: "{{ gitlab_config_template }}"
+    dest: /etc/gitlab/gitlab.rb
+    owner: root
+    group: root
+    mode: 0600
+
+- name: Create GitLab SSL configuration folder.
+  ansible.builtin.file:
+    path: /etc/gitlab/ssl
+    state: directory
+    owner: root
+    group: root
+    mode: 0700
+  when: gitlab_create_self_signed_cert
+
+- name: Create self-signed certificate.
+  ansible.builtin.command: >
+    openssl req -new -nodes -x509 -subj "{{ gitlab_self_signed_cert_subj }}"
+    -days 3650 -keyout {{ gitlab_ssl_certificate_key }} -out {{ gitlab_ssl_certificate }} -extensions v3_ca
+    creates={{ gitlab_ssl_certificate }}
+  when: gitlab_create_self_signed_cert
+
+- include_tasks: setup-Debian.yml
+  when: ansible_os_family == "Debian" or ansible_os_family.startswith('Astra')
+
+- name: Install python-gitlab api
+  ansible.builtin.pip:
+    name: python-gitlab

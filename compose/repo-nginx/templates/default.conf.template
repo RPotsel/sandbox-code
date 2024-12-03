@@ -1,0 +1,13 @@
+server_tokens off;
+
+server {
+  listen 80;
+  listen [::]:80;
+  server_name repository.rpot.lab;
+
+  location / {
+    root   /srv;
+    try_files $uri $uri/ =404;
+    autoindex on;
+  }
+}

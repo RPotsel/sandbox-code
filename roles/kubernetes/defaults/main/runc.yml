@@ -1,0 +1,16 @@
+---
+runc_version: "1.1.11"
+
+runc_bin_directory: "/usr/local/sbin"
+
+runc_owner: "root"
+runc_group: "root"
+
+runc_binary_mode: "0755"
+
+runc_arch: "amd64"
+
+runc_archive: "runc.amd64"
+
+runc_url: "https://github.com/opencontainers/runc/releases/download/v{{ runc_version }}/{{ runc_archive }}"
+runc_checksum: "sha256:https://github.com/opencontainers/runc/releases/download/v{{ runc_version }}/runc.sha256sum"

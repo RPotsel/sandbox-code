@@ -1,0 +1,43 @@
+---
+containerd_version: "1.7.11"
+containerd_arch: "amd64"
+containerd_archive: "containerd-{{ containerd_version }}-linux-{{ containerd_arch }}.tar.gz"
+#containerd_archive_url: "https://github.com/containerd/containerd/releases/download/v{{ containerd_version }}/{{ containerd_archive }}"
+containerd_archive_url: "https://mirror.yandex.ru/mirrors/github/containerd/containerd/v{{ containerd_version }}/{{ containerd_archive }}"
+containerd_tmp_directory: "{{ lookup('env', 'TMPDIR') | default('/tmp', true) }}"
+
+containerd_binary_directory: "/usr/local/bin"
+containerd_config_directory: "/etc/containerd"
+
+containerd_binaries_src_directory: "/bin"
+
+containerd_binaries:
+  - containerd
+  - containerd-shim
+  - containerd-shim-runc-v1
+  - containerd-shim-runc-v2
+  - ctr
+
+containerd_modules_file: /etc/modules-load.d/k8s.conf
+containerd_modules:
+  - overlay
+  - br_netfilter
+
+# containerd_sysctl_file_path: "/etc/sysctl.d/99-sysctl.conf"
+containerd_sysctl:
+  - { state: "present", name: "kernel.pid_max", value: "4194303" }
+  - { state: "present", name: "net.bridge.bridge-nf-call-arptables", value: "1" }
+  - { state: "present", name: "net.bridge.bridge-nf-call-ip6tables", value: "1" }
+  - { state: "present", name: "net.bridge.bridge-nf-call-iptables", value: "1" }
+  - { state: "present", name: "net.ipv4.ip_forward", value: "1" }
+  - { state: "present", name: "net.ipv4.conf.all.rp_filter", value: "0" }
+  - { state: "present", name: "net.ipv4.conf.lo.rp_filter", value: "0" }
+  - { state: "present", name: "net.ipv4.conf.default.rp_filter", value: "0" }
+  - { state: "present", name: "vm.min_free_kbytes", value: "65536" }
+  - { state: "present", name: "vm.swappiness", value: "0" }
+
+containerd_config_template: false
+#FIX: use string, bool <true> is converted to string <True> - this is an error in toml
+containerd_config_systemd_cgroup: "true"
+containerd_config_max_container_log_line_size: 16384
+containerd_config_containerd_snapshotter: "overlayfs"

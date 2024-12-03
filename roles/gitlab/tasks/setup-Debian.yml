@@ -1,0 +1,25 @@
+---
+# gitlab 16 requires glibc 2.28
+- name: Set OS Distribution Variable
+  ansible.builtin.set_fact:
+    os_distribution: "{{ 'debian' if ansible_os_family.startswith('Astra') else ansible_distribution }}"
+    distribution_release: "{{ 'buster' if ansible_os_family.startswith('Astra') else ansible_distribution_release }}"
+
+- name: Download GitLab Package
+  ansible.builtin.get_url:
+    url: "{{ gitlab_packages_url }}/{{ os_distribution }}/{{ distribution_release }}/{{ gitlab_edition }}_{{ gitlab_version }}_{{ gitlab_arch }}.deb/download.deb"
+    dest: "/tmp/{{ gitlab_edition }}_{{ gitlab_version }}_{{ gitlab_arch }}.deb"
+
+- name: Check if we downloaded a specific version of GitLab
+  ansible.builtin.stat:
+    path: "/tmp/{{ gitlab_edition }}_{{ gitlab_version }}_{{ gitlab_arch }}.deb"
+  register: specific_version
+
+- name: Install our specific version of GitLab
+  ansible.builtin.apt:
+    deb: "/tmp/{{ gitlab_edition }}_{{ gitlab_version }}_{{ gitlab_arch }}.deb"
+    state: present
+  environment:
+    GITLAB_ROOT_PASSWORD: "{{ gitlab_password }}"
+    EXTERNAL_URL: "{{ gitlab_external_url }}"
+  when: specific_version.stat.exists

@@ -1,0 +1,44 @@
+services:
+
+  apt-cacher:
+    build: ./apt-cacher
+    image: apt-cacher:0.0.1
+    container_name: apt-cacher
+    restart: unless-stopped
+    volumes:
+      - ./config/acng.conf:/etc/apt-cacher-ng/acng.conf
+      - /srv/apt-cacher/cache:/var/cache/apt-cacher-ng
+      - /srv/apt-cacher/log:/var/log/apt-cacher-ng
+    environment:
+      TZ: 'Europe/Moscow'
+    networks:
+      my-network:
+    ports:
+      - 3142:3142
+
+  registry:
+    image: registry:2.8.3
+    container_name: registry
+    restart: unless-stopped
+    volumes:
+      - /srv/registry/docker.io:/data
+      - ./ssl:/certs
+      - ./auth:/auth
+    environment:
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /data
+      REGISTRY_PROXY_REMOTEURL: https://registry-1.docker.io
+      REGISTRY_HTTP_TLS_CERTIFICATE: /certs/server.crt
+      REGISTRY_HTTP_TLS_KEY: /certs/server.key
+      # REGISTRY_AUTH: htpasswd
+      # REGISTRY_AUTH_HTPASSWD_PATH: /auth/htpasswd
+      # REGISTRY_AUTH_HTPASSWD_REALM: Registry Realm
+      TZ: 'Europe/Moscow'
+    networks:
+      my-network:
+    ports:
+      - 5000:5000
+
+networks:
+  my-network:
+    external: true
+    name: my-network

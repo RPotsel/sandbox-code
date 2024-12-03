@@ -1,0 +1,18 @@
+services:
+  gowebserver:
+    image: "rpot/demo-app-gowebserver:${TAG:-latest}"
+    build: "./gowebserver"
+    expose:
+      - "8080"
+    environment:
+      WORKSPACE: ${WORKSPACE:-test}
+
+  gateway:
+    image: "rpot/demo-app-gateway:${TAG:-latest}"
+    build: "./gateway"
+    environment:
+      SERVER_URL: ${SERVER_URL:-gowebserver:8080}
+    ports:
+      - "80:80"
+    depends_on:
+      - "gowebserver"

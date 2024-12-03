@@ -1,0 +1,72 @@
+services:
+  gitlab:
+    image: 'gitlab/gitlab-ce:${GITLAB_VERSION}'
+    # restart: always
+    hostname: ${GITLAB_DOMAIN}
+    container_name: gitlab
+    deploy:
+      resources:
+        limits:
+          cpus: '0.75'
+          memory: 4g
+        reservations:
+          cpus: '0.25'
+          memory: 2g
+    ports:
+      - '8929:8929'
+      - '2224:22'
+    volumes:
+      - ${GITLAB_HOME}/config:/etc/gitlab
+      - ${GITLAB_HOME}/logs:/var/log/gitlab
+      - ${GITLAB_HOME}/data:/var/opt/gitlab
+      - ${GITLAB_HOME}/ssl:/etc/ssl/certs/gitlab
+    shm_size: '256m'
+    environment:
+      GITLAB_ROOT_PASSWORD: ${GITLAB_ROOT_PASSWORD}
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url '${GITLAB_EXTERNAL_URL}'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2224
+        gitlab_rails['time_zone'] = '${GITLAB_TIME_ZONE}'
+        gitlab_rails['backup_keep_time'] = ${GITLAB_BACKUP_KEEP_TIME}
+        gitlab_rails['gitlab_email_enabled'] = ${GITLAB_EMAIL_ENABLED}
+        nginx['redirect_http_to_https'] = ${GITLAB_REDIRECT_HTTP_TO_HTTPS}
+        nginx['ssl_certificate'] = "${GITLAB_SSL_CERTIFICATE}"
+        nginx['ssl_certificate_key'] = "${GITLAB_SSL_CERTIFICATE_KEY}"
+        git_data_dirs({"default" => {"path" => "${GITLAB_GIT_DATA_DIR}"} })
+        gitlab_rails['backup_path'] = "${GITLAB_BACKUP_PATH}"
+        puma['worker_processes'] = 0
+        sidekiq['max_concurrency'] = 10
+        postgresql['shared_buffers'] = "256MB"
+        prometheus_monitoring['enable'] = false
+        gitlab_rails['env'] = {
+          'MALLOC_CONF' => 'dirty_decay_ms:1000,muzzy_decay_ms:1000'
+        }
+        gitaly['configuration'] = {
+          concurrency: [
+            {
+              'rpc' => "/gitaly.SmartHTTPService/PostReceivePack",
+              'max_per_repo' => 3,
+            }, {
+              'rpc' => "/gitaly.SSHService/SSHUploadPack",
+              'max_per_repo' => 3,
+            },
+          ],
+        }
+        gitaly['env'] = {
+          'MALLOC_CONF' => 'dirty_decay_ms:1000,muzzy_decay_ms:1000',
+          'GITALY_COMMAND_SPAWN_MAX_PARALLEL' => '2'
+        }
+    networks:
+      - dev-net
+  runner:
+    image: 'gitlab/gitlab-runner:${RUNNER_VERSION}'
+    container_name: gitlab-runner
+    # restart: always
+    volumes:
+      - '${RUNNER_HOME}:/etc/gitlab-runner'
+      - '/var/run/docker.sock:/var/run/docker.sock'
+    networks:
+      - dev-net
+networks:
+  dev-net:
+    name: development

@@ -1,0 +1,16 @@
+---
+install_helm: true
+install_kubectl: true
+
+# OS and hardware architecture
+k8s_platform: linux
+k8s_arch: amd64
+
+bin_dir: "/usr/local/bin"
+
+# Helm and kubectl versions to install
+# https://github.com/helm/helm/releases/
+helm_version: "v3.11.2"
+# https://dl.k8s.io/release/stable.txt
+kubectl_version: "1.26.3"
+

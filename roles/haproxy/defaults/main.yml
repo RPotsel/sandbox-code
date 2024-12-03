@@ -1,0 +1,31 @@
+haproxy_chroot: /var/lib/haproxy
+haproxy_socket: /run/haproxy/admin.sock mode 660 level admin expose-fd listeners
+haproxy_user: haproxy
+haproxy_group: haproxy
+
+# Default haproxy timeouts
+haproxy_connect_timeout: 5000
+haproxy_client_timeout: 50000
+haproxy_server_timeout: 50000
+haproxy_http_request_timeout: 10000
+
+# Frontend settings
+haproxy_frontends:
+  http-frontend:
+    bind: "*:80"
+    default_backend: http-backend
+  https-frontend:
+    mode: tcp
+    option: tcplog
+    bind: "*:443"
+    default_backend: https-backend
+
+# Backend settings
+haproxy_backends:
+  http-backend:
+    port: 32726
+    servers: "{{ groups['k8s_worker'] | unique }}"
+  https-backend:
+    mode: tcp
+    port: 31089
+    servers: "{{ groups['k8s_worker'] | unique }}"

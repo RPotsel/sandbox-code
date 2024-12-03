@@ -1,0 +1,45 @@
+---
+- name: Ensure dependencies are installed
+  apt:
+    name: "{{ packages }}"
+    state: present
+    update_cache: yes
+  vars:
+    packages:
+      - apt-transport-https
+      - ca-certificates
+      - curl
+      - gnupg
+
+- name: Add an apt signing key for Kubernetes
+  apt_key:
+    url: "{{ kubernetes_apt_key }}"
+    state: present
+
+- name: Adding apt repository for Kubernetes
+  apt_repository:
+    repo: "{{ kubernetes_apt_repository }}"
+    state: present
+    filename: kubernetes.list
+    update_cache: true
+
+- name: Add Kubernetes apt preferences file to hold a version
+  template:
+    src: apt-preferences-kubernetes.j2
+    dest: /etc/apt/preferences.d/kubernetes
+    mode: 0644
+
+- name: Install Kubernetes binaries
+  apt:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    state: present
+  notify: Restart kubelet
+
+- name: Ensure kubelet is started and enabled at boot
+  service:
+    name: kubelet
+    state: started
+    enabled: true

@@ -1,0 +1,11 @@
+---
+- name: Downloading runc
+  ansible.builtin.get_url:
+    url: "{{ runc_url }}"
+    dest: "{{ runc_bin_directory }}/runc"
+    checksum: "{{ runc_checksum }}"
+    mode: "{{ runc_binary_mode }}"
+    owner: "{{ runc_owner | default(omit) }}"
+    group: "{{ runc_group | default(omit) }}"
+  retries: 3
+  delay: 5

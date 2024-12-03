@@ -1,0 +1,14 @@
+---
+- name: Preparing directory on the localhost
+  block:
+  - name: Ensure the configuration directory exists
+    file:
+      path: "{{ ansible_inventory_sources[0] }}/artifacts"
+      state: directory
+      mode: 0755
+
+- name: Store config into localhost
+  fetch:
+    src: /etc/kubernetes/admin.conf
+    dest: "{{ ansible_inventory_sources[0] }}/artifacts/admin.conf"
+    flat: true

@@ -1,0 +1,20 @@
+---
+# cat /proc/swaps
+
+# - name: Mask swap.target (persist swapoff)
+#   ansible.builtin.systemd_service:
+#     unit: swap.target
+#     masked: true
+
+- name: Remove swapfile from /etc/fstab
+  mount:
+    name: "{{ item }}"
+    fstype: swap
+    state: absent
+  with_items:
+    - swap
+    - none
+
+- name: Disable swap
+  command: /sbin/swapoff -a
+  # when: ansible_swaptotal_mb > 0

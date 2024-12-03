@@ -1,0 +1,17 @@
+gitlab_host: localhost
+gitlab_port: 8929
+gitlab_url: http://{{ gitlab_host }}:{{ gitlab_port }}
+gitlab_user: root
+gitlab_password: Pa55w.rd
+
+gitlab_groups:
+  - name: example
+    description: example
+    projects:
+      - name: demo-app
+        path: https://github.com/RPotsel/demo-app.git
+    vars:
+      - name: ACCESS_KEY
+        value: "KEY01"
+      - name: DOCKER_AUTH_CONFIG
+        value: "KEY02"

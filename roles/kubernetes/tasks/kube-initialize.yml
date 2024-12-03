@@ -1,0 +1,55 @@
+---
+- name: Deploy the config-file
+  template:
+    src: "kubeadm-config.yaml.j2"
+    dest: "{{ kubernetes_kubeadm_config_file }}"
+
+- name: Initialize Kubernetes control plane with kubeadm init
+  command: kubeadm init --config {{ kubernetes_kubeadm_config_file }}
+  register: kubeadmin_init
+
+- name: Print the init output to screen
+  debug:
+    var: kubeadmin_init.stdout
+    verbosity: 2
+
+- name: Ensure .kube directory exists
+  file:
+    path: ~/.kube
+    state: directory
+    mode: 0755
+
+- name: Symlink the kubectl admin.conf to ~/.kube/config
+  file:
+    src: /etc/kubernetes/admin.conf
+    dest: ~/.kube/config
+    state: link
+    mode: 0644
+
+- name: Install ingress-nginx-controller
+  command: "kubectl apply -f {{ kubernetes_ingress_manifest }}"
+  changed_when: false
+
+- name: Prepare system for cilium
+  shell: |
+    kubectl -n kube-system delete ds kube-proxy
+    kubectl -n kube-system delete cm kube-proxy
+    iptables-save | grep -v KUBE | iptables-restore
+  when: kubernetes_pod_network.name == 'cilium'
+
+- name: Install Helm
+  include_tasks: helm.yml
+
+- name: Add chart helm network repository
+  kubernetes.core.helm_repository:
+    name: "{{ kubernetes_pod_network.name }}"
+    repo_url: "{{ kubernetes_pod_network.repo }}"
+
+- name: Install kubernetes network
+  kubernetes.core.helm:
+    name: "{{ kubernetes_pod_network.name }}"
+    chart_ref: "{{ kubernetes_pod_network.ref }}"
+    chart_version: "{{ kubernetes_pod_network.version }}"
+    release_namespace: "{{ kubernetes_pod_network.namespace }}"
+    create_namespace: yes
+    release_values: "{{ kubernetes_pod_network['values'] }}"

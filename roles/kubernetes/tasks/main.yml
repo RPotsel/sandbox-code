@@ -1,0 +1,92 @@
+---
+- name: Disable ipv6
+  import_tasks: disable-ipv6.yml
+  when: inventory_hostname in groups['k8s_cluster']
+  tags:
+    - disable_ipv6
+
+- name: Disable swap
+  import_tasks: swapoff.yml
+  when: inventory_hostname in groups['k8s_cluster']
+  tags:
+    - disable_swap
+
+- name: Configure /etc/hosts
+  import_tasks: etchosts.yml
+  tags:
+    - etc_hosts_configure
+
+- name: Install runc
+  import_tasks: runc.yml
+  when: inventory_hostname in groups['k8s_cluster']
+  tags:
+    - runc
+
+- name: Install CNI
+  import_tasks: cni.yml
+  when: inventory_hostname in groups['k8s_cluster']
+  tags:
+    - cni
+
+- name: Install containerd
+  import_tasks: containerd.yml
+  when: inventory_hostname in groups['k8s_cluster']
+  tags:
+    - containerd
+
+- name: Install Kubernetes
+  import_tasks: kubernetes.yml
+  when: inventory_hostname in groups['k8s_cluster']
+  tags:
+    - kubernetes
+
+- name: Check if Kubernetes has already been configured
+  stat:
+    path: /etc/kubernetes/admin.conf
+  register: kubernetes_init_stat
+  when:
+    - inventory_hostname == kubernetes_first_control_plane
+  tags:
+    - init
+
+- name: Initialize kubernetes
+  include_tasks: kube-initialize.yml
+  when:
+    - inventory_hostname == kubernetes_first_control_plane
+    - not kubernetes_init_stat.stat.exists
+  tags:
+    - init
+
+- name: Get the kubeadm join command from the Kubernetes control plane
+  command: kubeadm token create --print-join-command
+  changed_when: false
+  when: inventory_hostname == kubernetes_first_control_plane
+  register: kubernetes_join_command_result
+  tags:
+    - join
+
+- name: Set the kubeadm join command globally
+  set_fact:
+    kubernetes_join_command: >
+      {{ kubernetes_join_command_result.stdout }}
+  when: kubernetes_join_command_result.stdout is defined
+  delegate_to: "{{ item }}"
+  delegate_facts: true
+  with_items: "{{ groups['k8s_worker'] }}"
+  tags:
+    - join
+
+- name: Join node to Kubernetes control plane
+  command: >
+    {{ kubernetes_join_command }}
+    creates=/etc/kubernetes/kubelet.conf
+  when: inventory_hostname in groups['k8s_worker']
+  tags:
+    - join
+
+# - name: Get artifacts
+#   include_tasks: artifacts.yml
+#   when:
+#     inventory_hostname == kubernetes_first_control_plane
+#   tags:
+#     - kubeconfig_localhost

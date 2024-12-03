@@ -1,0 +1,41 @@
+upstream flaskserver {
+  server ${FLASK_URL};
+}
+
+server_tokens off;
+
+server {
+  listen 80;
+  listen [::]:80;
+  server_name my.rpot.lab;
+
+  # underscores_in_headers on;
+  # proxy_pass_request_headers on;
+
+  location / {
+    return 301 https://$host$request_uri;
+  }
+
+  location /flask {
+    proxy_pass       http://flaskserver;
+  }
+}
+
+server {
+  listen 443 ssl;
+  listen [::]:443 ssl;
+  server_name my.rpot.lab;
+
+  ssl_certificate     /etc/nginx/ssl/server.crt;
+  ssl_certificate_key /etc/nginx/ssl/server.key;
+
+  location / {
+    root   /usr/share/nginx/html;
+    index  index.html index.htm;
+  }
+
+  error_page   500 502 503 504  /50x.html;
+  location = /50x.html {
+    root   /usr/share/nginx/html;
+  }
+}

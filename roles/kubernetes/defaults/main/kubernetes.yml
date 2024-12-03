@@ -1,0 +1,44 @@
+kubernetes_version: "1.28"
+
+kubernetes_apt_key: "https://dl.k8s.io/apt/doc/apt-key.gpg"
+kubernetes_apt_repository: "deb https://mirror.yandex.ru/mirrors/kubernetes/ kubernetes-xenial main"
+
+kubernetes_kubeadm_config_file: "/etc/kubernetes/kubeadm-config.yaml"
+
+kubernetes_first_control_plane: "{{ groups['k8s_control_plane'][0] }}"
+kubernetes_advertise_address: "{{ hostvars[kubernetes_first_control_plane]['ansible_host'] }}"
+
+kubernetes_config_init_configuration:
+  localAPIEndpoint:
+    advertiseAddress: "{{ kubernetes_advertise_address }}"
+
+kubernetes_config_cluster_configuration:
+  clusterName: "cluster.local"
+  networking:
+    podSubnet: "{{ kubernetes_pod_network.cidr }}"
+  kubernetesVersion: "stable-{{ kubernetes_version }}"
+
+kubernetes_config_kubelet_configuration:
+  cgroupDriver: "systemd"
+
+kubernetes_config_kube_proxy_configuration: {}
+
+kubernetes_ingress_manifest: https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.9.5/deploy/static/provider/baremetal/deploy.yaml
+
+kubernetes_pod_network:
+  cidr: 10.0.0.0/8
+  name: cilium
+  repo: https://helm.cilium.io/
+  ref: cilium/cilium
+  version: 1.15.3
+  namespace: cni-cilium
+  values:
+    kubeProxyReplacement: true
+    k8sServiceHost: "{{ kubernetes_advertise_address }}"
+    k8sServicePort: 6443
+
+# Flannel config file.
+kubernetes_flannel_manifest_file: https://raw.githubusercontent.com/flannel-io/flannel/master/Documentation/kube-flannel.yml
+
+# Calico config file.
+kubernetes_calico_manifest_file: https://projectcalico.docs.tigera.io/manifests/calico.yaml

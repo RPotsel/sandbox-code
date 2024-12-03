@@ -1,0 +1,16 @@
+---
+- name: Example
+  hosts: worker02
+  become: true
+  tasks:
+
+  - name: Downloading runc
+    ansible.builtin.get_url:
+      url: "https://github.com/opencontainers/runc/releases/download/v1.1.11/runc.amd64"
+      dest: "/tmp/runc"
+      checksum: "sha256:https://github.com/opencontainers/runc/releases/download/v1.1.11/runc.sha256sum"
+      mode: "0755"
+      owner: "{{ runc_owner | default(omit) }}"
+      group: "{{ runc_group | default(omit) }}"
+    retries: 3
+    delay: 5

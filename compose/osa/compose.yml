@@ -1,0 +1,15 @@
+services:
+  osa-deploy:
+    image: osa-deploy:0.1
+    build: ./osa-deploy
+    container_name: osa-deploy
+    volumes:
+      - ~/.ssh:/root/.ssh:ro
+      - config/openstack_deploy:/etc/openstack_deploy:ro
+    networks:
+      - my-network
+
+networks:
+  my-network:
+    external: true
+    name: my-network

@@ -1,0 +1,18 @@
+---
+cni_version: "1.4.0"
+
+cni_bin_directory: "/opt/cni/bin"
+cni_conf_directory: "/etc/cni/net.d"
+
+cni_tmp_directory: "{{ lookup('env', 'TMPDIR') | default('/tmp', true) }}"
+
+cni_owner: "root"
+cni_group: "root"
+
+cni_binary_mode: "0755"
+
+cni_arch: "amd64"
+
+cni_archive: "cni-plugins-linux-{{ cni_arch }}-v{{ cni_version }}.tgz"
+
+cni_url: "https://github.com/containernetworking/plugins/releases/download/v{{ cni_version }}/{{ cni_archive }}"

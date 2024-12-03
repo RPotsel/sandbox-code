@@ -1,0 +1,10 @@
+---
+- name: Reconfigure GitLab
+  ansible.builtin.command: gitlab-ctl reconfigure
+  register: gitlab_reconfigure
+  failed_when: gitlab_reconfigure.rc != 0 | bool
+
+- name: Restart GitLab
+  ansible.builtin.command: gitlab-ctl restart
+  register: gitlab_restart
+  failed_when: gitlab_restart.rc != 0 | bool

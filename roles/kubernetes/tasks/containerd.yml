@@ -1,0 +1,127 @@
+---
+- name: Generate containerd core modules file
+  ansible.builtin.template:
+    src: "k8s.conf.j2"
+    dest: "{{ containerd_modules_file }}"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Load kernel modules
+  community.general.modprobe:
+    name: "{{ module }}"
+    state: present
+  loop: "{{ containerd_modules }}"
+  loop_control:
+    loop_var: "module"
+
+- name: Set sysctl parameters
+  ansible.posix.sysctl:
+    sysctl_file: "{{ containerd_sysctl_file_path | default(omit) }}"
+    name: "{{ sysctl.name }}"
+    value: "{{ sysctl.value }}"
+    state: "{{ sysctl.state }}"
+    reload: true
+  loop: "{{ containerd_sysctl }}"
+  loop_control:
+    loop_var: "sysctl"
+
+- name: Downloading containerd archive
+  ansible.builtin.get_url:
+    url: "{{ containerd_archive_url }}"
+    dest: "{{ containerd_tmp_directory }}/containerd.tar.gz"
+    checksum: "sha256:{{ containerd_archive_url }}.sha256sum"
+    mode: 0600
+  retries: 3
+  delay: 5
+
+- name: Unarchive containerd
+  ansible.builtin.unarchive:
+    src: "{{ containerd_tmp_directory }}/containerd.tar.gz"
+    dest: "{{ containerd_tmp_directory }}"
+    remote_src: true
+
+- name: Copy containerd binaries to destination directory
+  ansible.builtin.copy:
+    src: "{{ containerd_tmp_directory }}/bin/{{ binary }}"
+    dest: "{{ containerd_binary_directory }}/{{ binary }}"
+    mode: 0755
+    owner: root
+    group: root
+    remote_src: true
+  loop: "{{ containerd_binaries }}"
+  loop_control:
+    loop_var: "binary"
+
+- name: Create directory for containerd configuration file
+  ansible.builtin.file:
+    path: "{{ containerd_config_directory }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Generate containerd configuration file
+  ansible.builtin.template:
+    src: config.toml.j2
+    dest: "{{ containerd_config_directory }}/config.toml"
+  when: containerd_config_template
+
+- name: Get defaults config from containerd
+  ansible.builtin.command: containerd config default
+  changed_when: false
+  register: containerd_config_default
+  when: not containerd_config_template
+
+- name: Create default containerd configuration file
+  ansible.builtin.copy:
+    dest: "{{ containerd_config_directory }}/config.toml"
+    content: "{{ containerd_config_default.stdout }}"
+  when: not containerd_config_template
+
+# - name: Generate default containerd configuration file
+#   ansible.builtin.shell: >
+#     containerd config default > {{ containerd_config_directory }}/config.toml
+#   when: not containerd_config_template
+
+- name: Set permissions to config.toml
+  ansible.builtin.file:
+    path: "{{ containerd_config_directory }}/config.toml"
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Modify containerd configure file
+  ansible.builtin.lineinfile:
+    path: "{{ containerd_config_directory }}/config.toml"
+    regexp: "{{ containerd_config.regexp }}"
+    line: "{{ containerd_config.line }}"
+    state: present
+    backrefs: yes
+  loop:
+    - { regexp: '(?i)^( *SystemdCgroup = )[true | false]', line: '\g<1>{{ containerd_config_systemd_cgroup | string }}' }
+    - { regexp: '(?i)^( *max_container_log_line_size = )', line: '\g<1>{{ containerd_config_max_container_log_line_size | string }}' }
+    - { regexp: '(?i)^( *snapshotter = )', line: '\g<1>"{{ containerd_config_containerd_snapshotter }}"' }
+  loop_control:
+    loop_var: "containerd_config"
+  when: not containerd_config_template
+
+- name: Create containerd.service systemd file
+  ansible.builtin.template:
+    src: containerd.service.j2
+    dest: "/etc/systemd/system/containerd.service"
+    owner: root
+    group: root
+    mode: 0644
+  notify:
+    - Reload Systemd Daemon
+    - Restart containerd
+
+- name: Enable and start containerd
+  ansible.builtin.service:
+    name: containerd
+    enabled: true
+    state: started
+
+# - name: Force all notified handlers to run at this point
+#   ansible.builtin.meta: flush_handlers

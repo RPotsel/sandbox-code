@@ -1,0 +1,32 @@
+---
+- name: Create GitLab group
+  community.general.gitlab_group:
+    api_url: "{{ gitlab_url }}"
+    validate_certs: False
+    api_username: "{{ gitlab_user }}"
+    api_password: "{{ gitlab_password }}"
+    name: "{{ group.name }}"
+    visibility: internal
+    description: "{{ group.description | default('Hello world') }}"
+    project_creation_level: maintainer
+    require_two_factor_authentication: no
+    subgroup_creation_level: maintainer
+    auto_devops_enabled: no
+    state: present
+  register: gitlab_group
+
+- name: Set GitLab variables
+  community.general.gitlab_group_variable:
+    api_url: "{{ gitlab_url }}"
+    validate_certs: False
+    api_username: "{{ gitlab_user }}"
+    api_password: "{{ gitlab_password }}"
+    group: "{{ gitlab_group.group.id }}"
+    purge: true
+    variables: "{{ group.vars }}"
+
+- include_tasks: create-project.yml
+  loop: "{{ group.projects }}"
+  loop_control:
+    loop_var: project
+    label: "{{ project.name }}"
